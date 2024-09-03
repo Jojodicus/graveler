@@ -28,6 +28,6 @@ time ./graveler
 
 # Results
 
-**~550 milliseconds** of total runtime, **~7000 nanoseconds** of raw computation (13700K + 4070 Ti SUPER)
+**~526 milliseconds** of total runtime, **~482 milliseconds** of raw computation (13700K + 4070 Ti SUPER)
 
 ![Results](results.png)

@@ -16,18 +16,30 @@
 
 #include "colors.h"
 
+// how many turns we have in total
+#ifndef MAX_TURNS
+#define MAX_TURNS 231
+#endif
+// how many turns we need to get para-hax'd
+#ifndef NEEDED_TURNS
+#define NEEDED_TURNS 177
+#endif
+// number of iterations in total
+#ifndef ITERATIONS
+#define ITERATIONS 1'000'000'000
+#endif
+// how much computation should be offloaded to the GPU
+#ifndef OFFLOAD
+#define OFFLOAD 0.99
+#endif
+// number of CPU threads (0 = all available, minus one for the main thread)
+#ifndef CPU_THREADS
+#define CPU_THREADS 0
+#endif
+
 #define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
     printf("Error at %s:%d\n",__FILE__,__LINE__); \
     return EXIT_FAILURE;}} while(0)
-
-// how many turns we need in total
-constexpr unsigned int MAX_TURNS = 231;
-// number of iterations in total
-constexpr unsigned long long ITERATIONS = 1'000'000'000;
-// how much computation should be offloaded to the GPU
-constexpr double OFFLOAD = 0.99;
-// number of CPU threads (0 = all available, minus one for the main thread)
-constexpr int CPU_THREADS = 0;
 
 __global__ void setup_kernel(curandState *state, unsigned int seed) {
     int id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -145,7 +157,6 @@ int main(void) {
     auto t2 = std::chrono::high_resolution_clock::now();
     compute_kernel<<<64, 64>>>(devStates, iterationsPerKernel, devResults);
 
-
     // join
     for (int i = 0; i < cpuThreads; ++i) {
         threads[i]->join();
@@ -164,7 +175,7 @@ int main(void) {
     }
 
     std::cout << "Maximum number of \"1\" rolls: " KCYN << maxCount << RST << std::endl;
-    std::cout << "Escaped the softlock? " << (maxCount >= 177 ? FGRN("yes") : FRED("no")) << std::endl;
+    std::cout << "Escaped the softlock? " << (maxCount >= NEEDED_TURNS ? FGRN("yes") : FRED("no")) << std::endl;
 
     // time taken
     std::chrono::duration<double, std::milli> ms_double = t3 - t1;
