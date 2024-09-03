@@ -38,3 +38,12 @@ Because it's fun, the impact of changing the offloading percentage was investiga
 
 For my current desktop system, a minimum is reached at ~98.4% GPU-offload, though even after that the runtime penalty is very insignificant.
 GPUs are just so much faster for parallel tasks, that you normally don't even put in the effort to balance the jobs for CPU and GPU.
+
+Again, because it's fun, I also threw it on a HPC system with 2x Epyc 9654 and 4x H100 NVL (but only one used):
+
+![HPC Results](results-hpc.png)
+
+This is really interesting, just throwing expensive hardware at the problem isn't very effective.
+For such small problem sizes, the initialization overhead can be quite big.
+It's also really important to optimize the application for the specific hardware (NUMA-affinity, multi-GPU, multi-node, etc...),
+but doing so is a topic for another time...
