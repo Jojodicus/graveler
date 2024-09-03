@@ -9,7 +9,7 @@ challenging others to see how fast one can simulate an attempt at escaping the s
 My attempt includes using GPU-acceleration with CUDA and the cuRAND library for generating random numbers.
 
 This can still be improved, for example by simulating in parallel on the CPU while waiting for the GPU results to come in,
-or by using a faster pRNG generator (or by modifying the current one for batch generation).
+or by using a faster PRNG generator (or by modifying the current one for batch generation).
 
 # Prerequisites
 
