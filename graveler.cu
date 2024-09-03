@@ -30,7 +30,7 @@
 #endif
 // how much computation should be offloaded to the GPU
 #ifndef OFFLOAD
-#define OFFLOAD 0.99
+#define OFFLOAD 0.984
 #endif
 // number of CPU threads (0 = all available, minus one for the main thread)
 #ifndef CPU_THREADS
@@ -71,11 +71,13 @@ __global__ void compute_kernel(curandState *state, int n, unsigned int *result) 
 
 class ThreadTask {
 public:
-    int id, start, end;
+    unsigned long id, start, end;
     unsigned int maxCount;
     std::mt19937 mt;
 
-    ThreadTask(int id, int start, int end) : id{id}, start{start}, end{end}, maxCount{0} {
+    ThreadTask(unsigned long id, unsigned long start, unsigned long end)
+        : id{id}, start{start}, end{end}, maxCount{0}
+    {
         mt.seed(id + std::random_device{}());
     }
 
@@ -85,7 +87,7 @@ public:
         unsigned int x, count;
 
         // simulate, analogous to above
-        for (int i = start; i < end; ++i) {
+        for (unsigned long i = start; i < end; ++i) {
             count = 0;
             for (int j = 0; j < MAX_TURNS; ++j) {
                 x = rng(mt);
@@ -106,9 +108,9 @@ int main(void) {
     int cpuThreads = CPU_THREADS ? CPU_THREADS : std::thread::hardware_concurrency() - 1;
 
     // split work between CPU and GPU
-    constexpr unsigned int iterationsPerKernel = (ITERATIONS * OFFLOAD) / totalThreads;
-    constexpr unsigned int gpuIterations = iterationsPerKernel * totalThreads;
-    constexpr int cpuIterations = ITERATIONS - gpuIterations;
+    constexpr unsigned long iterationsPerKernel = (ITERATIONS * OFFLOAD) / totalThreads;
+    constexpr unsigned long gpuIterations = iterationsPerKernel * totalThreads;
+    constexpr unsigned long cpuIterations = ITERATIONS - gpuIterations;
 
     std::cout << "Performing " << ITERATIONS << " simulations (" << cpuIterations << " CPU + " << gpuIterations << " GPU)" << std::endl;
     std::string cpuName;
@@ -130,9 +132,9 @@ int main(void) {
     auto t0 = std::chrono::high_resolution_clock::now();
     ThreadTask** tasks = new ThreadTask*[cpuThreads];
     std::thread** threads = new std::thread*[cpuThreads];
-    for (int i = 0; i < cpuThreads; ++i) {
-        int start = i * cpuIterations / cpuThreads;
-        int end = (i + 1) * cpuIterations / cpuThreads;
+    for (unsigned int i = 0; i < cpuThreads; ++i) {
+        unsigned long start = i * cpuIterations / cpuThreads;
+        unsigned long end = (i + 1) * cpuIterations / cpuThreads;
         tasks[i] = new ThreadTask{i, start, end};
     }
     auto t1 = std::chrono::high_resolution_clock::now();

@@ -10,4 +10,4 @@ clean:
 	rm -f $(BINNAME)
 
 graveler: graveler.cu colors.h
-	$(NVCXX) $(NVCXXFLAGS) -o $(BINNAME) $<
+	$(NVCXX) $(NVCXXFLAGS) $(DEFINES) -o $(BINNAME) $<
