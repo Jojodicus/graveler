@@ -28,6 +28,10 @@
 #ifndef ITERATIONS
 #define ITERATIONS 1'000'000'000
 #endif
+// if CPU should also be used for simulation
+#ifndef USE_CPU
+#define USE_CPU true
+#endif
 // how much computation should be offloaded to the GPU
 #ifndef OFFLOAD
 #define OFFLOAD 0.984
@@ -104,15 +108,18 @@ int main(void) {
     constexpr unsigned int blockCount = 64;
     constexpr unsigned int totalThreads = threadsPerBlock * blockCount;
 
-    // CPU threads
-    int cpuThreads = CPU_THREADS ? CPU_THREADS : std::thread::hardware_concurrency() - 1;
-
     // split work between CPU and GPU
-    constexpr unsigned long iterationsPerKernel = (ITERATIONS * OFFLOAD) / totalThreads;
+    constexpr unsigned long iterationsPerKernel = USE_CPU ? (ITERATIONS * OFFLOAD) : ITERATIONS / totalThreads;
     constexpr unsigned long gpuIterations = iterationsPerKernel * totalThreads;
+#if USE_CPU
     constexpr unsigned long cpuIterations = ITERATIONS - gpuIterations;
+    int cpuThreads = CPU_THREADS ? CPU_THREADS : std::thread::hardware_concurrency() - 1;
+#endif
 
-    std::cout << "Performing " << ITERATIONS << " simulations (" << cpuIterations << " CPU + " << gpuIterations << " GPU)" << std::endl;
+    std::cout << "Performing " << ITERATIONS << " simulations: ";
+    std::cout << gpuIterations << " GPU" << std::endl;
+#if USE_CPU
+    std::cout << " + " << cpuIterations << " CPU";
     std::string cpuName;
     cpuName.resize(49);
     uint *cpuInfo = reinterpret_cast<uint*>(cpuName.data());
@@ -121,6 +128,7 @@ int main(void) {
     }
     cpuName.assign(cpuName.data()); // correct null terminator
     std::cout << cpuThreads << " threads on " << cpuName << std::endl;
+#endif
 
     curandState *devStates;
     unsigned int maxCount;
@@ -130,6 +138,7 @@ int main(void) {
 
     // 🏎️ start CPU now so we have time to do CUDA in the background
     auto t0 = std::chrono::high_resolution_clock::now();
+#if USE_CPU
     ThreadTask** tasks = new ThreadTask*[cpuThreads];
     std::thread** threads = new std::thread*[cpuThreads];
     for (unsigned int i = 0; i < cpuThreads; ++i) {
@@ -141,6 +150,7 @@ int main(void) {
     for (int i = 0; i < cpuThreads; ++i) {
         threads[i] = new std::thread{*tasks[i]};
     }
+#endif
 
     CUDA_CALL(cudaGetDevice(&device));
     CUDA_CALL(cudaGetDeviceProperties(&props, device));
@@ -160,10 +170,12 @@ int main(void) {
     compute_kernel<<<64, 64>>>(devStates, iterationsPerKernel, devResults);
 
     // join
+#if USE_CPU
     for (int i = 0; i < cpuThreads; ++i) {
         threads[i]->join();
     }
     auto t3 = std::chrono::high_resolution_clock::now();
+#endif
     CUDA_CALL(cudaDeviceSynchronize());
     auto t4 = std::chrono::high_resolution_clock::now();
 
@@ -172,16 +184,21 @@ int main(void) {
     for (int i = 0; i < totalThreads; ++i) {
         maxCount = max(maxCount, hostResults[i]);
     }
+#if USE_CPU
     for (int i = 0; i < cpuThreads; ++i) {
         maxCount = max(maxCount, tasks[i]->maxCount);
     }
+#endif
 
     std::cout << "Maximum number of \"1\" rolls: " KCYN << maxCount << RST << std::endl;
     std::cout << "Escaped the softlock? " << (maxCount >= NEEDED_TURNS ? FGRN("yes") : FRED("no")) << std::endl;
 
     // time taken
-    std::chrono::duration<double, std::milli> ms_double = t3 - t1;
+    std::chrono::duration<double, std::milli> ms_double;
+#if USE_CPU
+    ms_double = t3 - t1;
     std::cout << "CPU computation without setup took " KYEL << ms_double.count() << RST " milliseconds" << std::endl;
+#endif
     ms_double = t4 - t2;
     std::cout << "GPU computation without setup took " KYEL << ms_double.count() << RST " milliseconds" << std::endl;
     ms_double = t4 - t0;
