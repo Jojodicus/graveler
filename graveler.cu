@@ -109,7 +109,7 @@ int main(void) {
     constexpr unsigned int totalThreads = threadsPerBlock * blockCount;
 
     // split work between CPU and GPU
-    constexpr unsigned long iterationsPerKernel = USE_CPU ? (ITERATIONS * OFFLOAD) : ITERATIONS / totalThreads;
+    constexpr unsigned long iterationsPerKernel = (USE_CPU ? (ITERATIONS * OFFLOAD) : ITERATIONS) / totalThreads;
     constexpr unsigned long gpuIterations = iterationsPerKernel * totalThreads;
 #if USE_CPU
     constexpr unsigned long cpuIterations = ITERATIONS - gpuIterations;
@@ -117,9 +117,9 @@ int main(void) {
 #endif
 
     std::cout << "Performing " << ITERATIONS << " simulations: ";
-    std::cout << gpuIterations << " GPU" << std::endl;
+    std::cout << gpuIterations << " GPU";
 #if USE_CPU
-    std::cout << " + " << cpuIterations << " CPU";
+    std::cout << " + " << cpuIterations << " CPU" << std::endl;
     std::string cpuName;
     cpuName.resize(49);
     uint *cpuInfo = reinterpret_cast<uint*>(cpuName.data());
@@ -127,8 +127,9 @@ int main(void) {
         __cpuid(0x80000002+i, cpuInfo[i*4], cpuInfo[i*4+1], cpuInfo[i*4+2], cpuInfo[i*4+3]);
     }
     cpuName.assign(cpuName.data()); // correct null terminator
-    std::cout << cpuThreads << " threads on " << cpuName << std::endl;
+    std::cout << cpuThreads << " threads on " << cpuName;
 #endif
+    std::cout << std::endl;
 
     curandState *devStates;
     unsigned int maxCount;
